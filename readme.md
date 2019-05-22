@@ -27,7 +27,13 @@ const persistedReducers = persistReducer({
     transforms: [
        // Create a transformer by passing the reducer key and configuration. Values
        // shown below are the available configurations with default values
-       expireReducer('preference', {
+       expireReducer({
+         // You need to provide at least one item to whitelist because by default 
+         // the transform does not apply to any key
+         // (Required) define which reducers this transform gets called for
+         whitelist: ['preference'],
+         // (Optional) define which reducers this transform will not be called for
+         blacklist: null,
          // (Optional) Key to be used for the time relative to which store is to be expired
          persistedAtKey: '__persisted_at',
          // (Required) Seconds after which store will be expired
@@ -38,8 +44,6 @@ const persistedReducers = persistReducer({
          // and want the store to  be automatically expired if the record is not updated in the `expireSeconds` time
          autoExpire: false
        })
-       // You can add more `expireReducer` calls here for different reducers
-       // that you may want to expire
     ]
   },
   rootReducer,
@@ -56,8 +60,16 @@ Here is the configuration for the common usecases
 > Expire the item in store if it has not been updated for the past `n` seconds
 
 ```javascript
+// Reset any key to empty object if it has not been updated for the past hour
+expireReducer({
+    expireSeconds: 3600
+})
+```
+
+```javascript
 // Reset `preference` key to empty object if it has not been updated for the past hour
-expireReducer('preference', {
+expireReducer({
+    whitelist: ['preference'],
     expireSeconds: 3600
 })
 ```
@@ -66,7 +78,8 @@ expireReducer('preference', {
 
 ```javascript
 // Reset `preference` key to given defaults if it has not been updated for the past hour
-expireReducer('preference', {
+expireReducer({
+    whitelist: ['preference'],
     expireSeconds: 1800,
     expiredState: {
       viewType: 'list',
@@ -79,7 +92,8 @@ expireReducer('preference', {
 
 ```javascript
 // Reset `users` key to empty array if it had been loaded 30 minutes ago
-expireReducer('users', {
+expireReducer({
+    whitelist: ['users'],
     persistedAtKey: 'loadedAt',
     expireSeconds: 1800,
     expiredState: []        // Reset to empty array after expiry

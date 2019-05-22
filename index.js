@@ -51,11 +51,10 @@ const transformRehydrate = (outboundState, config) => {
 
 /**
  * Creates transform object with the given expiry configuration
- * @param reducerKey
  * @param config
  * @return {Transform<{}, any>}
  */
-function expireReducer(reducerKey, config = {}) {
+function expireReducer(config = {}) {
 
   const defaults = {
     // Key to be used for the time relative to which store is to be expired
@@ -77,9 +76,7 @@ function expireReducer(reducerKey, config = {}) {
     // transform state being rehydrated
     (outboundState) => transformRehydrate(outboundState, config),
     // define which reducers this transform gets called for.
-    {
-      whitelist: [reducerKey]
-    }
+    Object.assign({}, config)
   );
 }
 

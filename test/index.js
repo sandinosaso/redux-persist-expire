@@ -6,7 +6,7 @@ describe('redux-persist-expire', function () {
     const state = { username: 'redux', id: 1 };
     const reducerKey = 'someReducer';
 
-    const transform = expireReducer(reducerKey);
+    const transform = expireReducer();
 
     const inboundOutputState = transform.in(state, reducerKey);
     assert.equal(inboundOutputState, state, 'Input state should not be affected');
@@ -17,11 +17,52 @@ describe('redux-persist-expire', function () {
     done();
   });
 
+  it('does not change state when reducer key not in whitelist', function (done) {
+    const state = { username: 'redux', id: 1 };
+    const reducerKey = 'someReducer';
+
+    const transform = expireReducer({
+      autoExpire: true,
+      whitelist: ['anotherReducer']
+    });
+
+    const inboundOutputState = transform.in(state, reducerKey);
+    assert.equal(inboundOutputState, state, 'Input state should not be affected');
+
+    const outboundOutputState = transform.out(state, reducerKey);
+    assert.equal(outboundOutputState, state, 'Output state should not be affected');
+
+    done();
+  });
+
+  it('does change and persist state when reducer key is in whitelist', function (done) {
+    const state = { username: 'redux', id: 1 };
+    const reducerKey = 'someReducer';
+
+    const transform = expireReducer({
+      autoExpire: true,
+      whitelist: ['someReducer']
+    });
+
+    const inboundDate = new Date().getTime();
+    const inboundOutputState = transform.in(state, reducerKey);
+    const persistedDate = inboundOutputState.__persisted_at;
+
+    // Check if it has the same keys and the __persisted_at key
+    // Check if the __persisted_at has the correct current value
+    assert.deepEqual(Object.keys(inboundOutputState), ['username', 'id', '__persisted_at']);
+    assert.equal(inboundOutputState.username, 'redux');
+    assert.equal(inboundOutputState.id, 1);
+    assert.equal(true, persistedDate <= (inboundDate + 10));
+
+    done();
+  });
+
   it('can set the persisted date on the default key if autoExpire', function (done) {
     const state = { username: 'redux', id: 1 };
     const reducerKey = 'someReducer';
 
-    const transform = expireReducer(reducerKey, { autoExpire: true });
+    const transform = expireReducer({ autoExpire: true });
     const inboundDate = new Date().getTime();
     const inboundOutputState = transform.in(state, reducerKey);
     const persistedDate = inboundOutputState.__persisted_at;
@@ -39,7 +80,7 @@ describe('redux-persist-expire', function () {
     const state = { username: 'redux', id: 1 };
     const reducerKey = 'someReducer';
 
-    const transform = expireReducer(reducerKey, { autoExpire: true, persistedAtKey: 'updatedAt' });
+    const transform = expireReducer({ autoExpire: true, persistedAtKey: 'updatedAt' });
     const inboundDate = new Date().getTime();
     const inboundOutputState = transform.in(state, reducerKey);
     const persistedDate = inboundOutputState.updatedAt;
@@ -57,7 +98,7 @@ describe('redux-persist-expire', function () {
   it('autoExpire – does not override the persisted date if date already present', function (done) {
     const reducerKey = 'someReducer';
 
-    const transform = expireReducer(reducerKey, { autoExpire: true, persistedAtKey: 'updatedAt' });
+    const transform = expireReducer({ autoExpire: true, persistedAtKey: 'updatedAt' });
     const inboundDate = new Date().getTime();
     const inboundOutputState = transform.in({ username: 'redux3', id: 13 }, reducerKey);
     const persistedDate = inboundOutputState.updatedAt;
@@ -86,7 +127,7 @@ describe('redux-persist-expire', function () {
     const state = { username: 'redux', id: 1, updatedAt: new Date(Date.now() - 1 * 1000) };
     const reducerKey = 'someReducer';
 
-    const transform = expireReducer(reducerKey, { persistedAtKey: 'updatedAt', expireSeconds: 5 });
+    const transform = expireReducer({ persistedAtKey: 'updatedAt', expireSeconds: 5 });
 
     const inboundOutputState = transform.in(state, reducerKey);
     assert.deepEqual(inboundOutputState, state, '`in/persisting` does not affect the state');
@@ -111,7 +152,7 @@ describe('redux-persist-expire', function () {
     };
 
     const reducerKey = 'someReducer';
-    const transform = expireReducer(reducerKey, {
+    const transform = expireReducer({
       persistedAtKey: 'updatedAt',
       expireSeconds: 50,
       expiredState: {
